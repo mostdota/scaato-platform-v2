@@ -60,7 +60,7 @@ export async function getOrCreateCustomer(profile: {
     mobilePhone: profile.phone,
     address: profile.address,
     province: profile.city,
-    postalCode: profile.zip_code,
+    postalCode: profile.zipCode,
   })
 }
 
