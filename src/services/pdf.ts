@@ -69,7 +69,7 @@ export async function generateContractPdf(
   field('E-mail', profile.email)
   field('Telefone', profile.phone || '—')
   field('Endereço', profile.address ? `${profile.address}, ${profile.city} - ${profile.state}` : '—')
-  field('CEP', profile.zipCode || '—')
+  field('CEP', profile.zip_code || '—')
 
   y -= 8
   section('DADOS DO PRODUTO')
@@ -77,7 +77,7 @@ export async function generateContractPdf(
   field('Descrição', scooter.description || '—')
   field('Valor total', `R$ ${Number(scooter.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)
   field('Nº do Pedido', order.id.slice(0, 8).toUpperCase())
-  field('Data do pedido', new Date(order.createdAt).toLocaleDateString('pt-BR'))
+  field('Data do pedido', new Date(order.created_at).toLocaleDateString('pt-BR'))
 
   if (scooter.specs && Object.keys(scooter.specs).length > 0) {
     y -= 4

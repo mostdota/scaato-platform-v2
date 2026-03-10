@@ -60,8 +60,8 @@ export default function BuyPage() {
   }
 
   function copyPix() {
-    if (!payment?.pixQrCodePayload) return
-    navigator.clipboard.writeText(payment.pixQrCodePayload)
+    if (!payment?.pix_qr_code_payload) return
+    navigator.clipboard.writeText(payment.pix_qr_code_payload)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -184,16 +184,16 @@ export default function BuyPage() {
                   Aguardando pagamento
                 </div>
                 <div className="text-4xl font-bold font-mono mb-1">{formatCurrency(payment.value)}</div>
-                <div className="text-[#555] text-sm mb-6">Vencimento: {new Date(payment.dueDate).toLocaleDateString('pt-BR')}</div>
+                <div className="text-[#555] text-sm mb-6">Vencimento: {new Date(payment.due_date).toLocaleDateString('pt-BR')}</div>
 
                 {/* PIX */}
-                {payment.method === 'PIX' && payment.pixQrCodeImage && (
+                {payment.method === 'PIX' && payment.pix_qr_code_image && (
                   <div className="space-y-4">
-                    <img src={`data:image/png;base64,${payment.pixQrCodeImage}`} alt="QR Code PIX" className="w-52 h-52 mx-auto rounded-xl" />
-                    {payment.pixQrCodePayload && (
+                    <img src={`data:image/png;base64,${payment.pix_qr_code_image}`} alt="QR Code PIX" className="w-52 h-52 mx-auto rounded-xl" />
+                    {payment.pix_qr_code_payload && (
                       <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4">
                         <div className="text-xs text-[#555] mb-2">Copia e Cola</div>
-                        <div className="text-xs font-mono text-[#888] break-all line-clamp-2 mb-3">{payment.pixQrCodePayload}</div>
+                        <div className="text-xs font-mono text-[#888] break-all line-clamp-2 mb-3">{payment.pix_qr_code_payload}</div>
                         <button onClick={copyPix} className={`btn w-full ${copied ? 'btn-secondary' : 'btn-primary'} btn-sm`}>
                           {copied ? <><Check className="w-4 h-4" /> Copiado!</> : <><Copy className="w-4 h-4" /> Copiar código</>}
                         </button>
@@ -203,15 +203,15 @@ export default function BuyPage() {
                 )}
 
                 {/* Boleto */}
-                {payment.method === 'BOLETO' && payment.bankSlipUrl && (
-                  <a href={payment.bankSlipUrl} target="_blank" rel="noreferrer" className="btn btn-primary w-full">
+                {payment.method === 'BOLETO' && payment.bank_slip_url && (
+                  <a href={payment.bank_slip_url} target="_blank" rel="noreferrer" className="btn btn-primary w-full">
                     <ExternalLink className="w-4 h-4" /> Abrir Boleto
                   </a>
                 )}
 
                 {/* Cartão */}
-                {payment.method === 'CREDIT_CARD' && payment.invoiceUrl && (
-                  <a href={payment.invoiceUrl} target="_blank" rel="noreferrer" className="btn btn-primary w-full">
+                {payment.method === 'CREDIT_CARD' && payment.invoice_url && (
+                  <a href={payment.invoice_url} target="_blank" rel="noreferrer" className="btn btn-primary w-full">
                     <ExternalLink className="w-4 h-4" /> Pagar com Cartão
                   </a>
                 )}

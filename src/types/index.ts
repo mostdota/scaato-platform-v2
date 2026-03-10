@@ -15,11 +15,11 @@ export type CommissionStatus = 'PENDING' | 'APPROVED' | 'PAID'
 export interface Brand {
   id: string
   name: string
-  primaryColor: string
-  secondaryColor: string
-  logoUrl?: string
+  primary_color: string
+  secondary_color: string
+  logo_url?: string
   domain?: string
-  createdAt: string
+  created_at: string
 }
 
 export interface Profile {
@@ -27,19 +27,19 @@ export interface Profile {
   name: string
   email: string
   role: UserRole
-  brandId?: string
-  avatarUrl?: string
+  brand_id?: string
+  avatar_url?: string
   cpf?: string
   rg?: string
   phone?: string
   address?: string
   city?: string
   state?: string
-  zipCode?: string
-  asaasCustomerId?: string
-  referralCode?: string
-  createdAt: string
-  updatedAt: string
+  zip_code?: string
+  asaas_customer_id?: string
+  referral_code?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface Scooter {
@@ -47,7 +47,7 @@ export interface Scooter {
   model: string
   description?: string
   price: number
-  imageUrl?: string
+  image_url?: string
   available: boolean
   specs?: {
     maxSpeed?: string
@@ -56,19 +56,19 @@ export interface Scooter {
     weight?: string
     charging?: string
   }
-  createdAt: string
+  created_at: string
 }
 
 export interface Order {
   id: string
-  profileId: string
-  scooterId: string
+  profile_id: string
+  scooter_id: string
   status: OrderStatus
-  totalAmount: number
-  referralCode?: string
+  total_amount: number
+  referral_code?: string
   notes?: string
-  createdAt: string
-  updatedAt: string
+  created_at: string
+  updated_at: string
   // joins
   profile?: Profile
   scooter?: Scooter
@@ -78,40 +78,40 @@ export interface Order {
 
 export interface Payment {
   id: string
-  orderId: string
-  profileId: string
-  asaasPaymentId?: string
-  asaasCustomerId?: string
+  order_id: string
+  profile_id: string
+  asaas_payment_id?: string
+  asaas_customer_id?: string
   method?: PaymentMethod
   value: number
-  dueDate: string
+  due_date: string
   status: PaymentStatus
-  paidAt?: string
+  paid_at?: string
   description?: string
-  invoiceUrl?: string
-  bankSlipUrl?: string
-  pixQrCodeImage?: string
-  pixQrCodePayload?: string
-  createdAt: string
-  updatedAt: string
+  invoice_url?: string
+  bank_slip_url?: string
+  pix_qr_code_image?: string
+  pix_qr_code_payload?: string
+  created_at: string
+  updated_at: string
   // joins
   order?: Order
 }
 
 export interface Contract {
   id: string
-  orderId: string
-  profileId: string
+  order_id: string
+  profile_id: string
   title: string
   status: ContractStatus
   hash?: string
-  documentUrl?: string
-  signatureUrl?: string
-  clicksignDocumentKey?: string
-  clicksignSignerKey?: string
-  signedAt?: string
-  createdAt: string
-  updatedAt: string
+  document_url?: string
+  signature_url?: string
+  clicksign_document_key?: string
+  clicksign_signer_key?: string
+  signed_at?: string
+  created_at: string
+  updated_at: string
   // joins
   profile?: Profile
   order?: Order
@@ -137,31 +137,33 @@ export interface GroupConfig {
 
 export interface Referral {
   id: string
-  referrerId: string
-  referredId: string
-  referralCode: string
+  referrer_id: string
+  referred_id: string
+  referral_code: string
   status: 'PENDING' | 'ACTIVE' | 'CONVERTED'
-  createdAt: string
+  created_at: string
+  // joins
+  referred?: Profile
 }
 
 export interface AffiliateWallet {
   id: string
-  userId: string
+  user_id: string
   balance: number
-  totalEarned: number
-  updatedAt: string
+  total_earned: number
+  updated_at: string
 }
 
 export interface Commission {
   id: string
-  referrerId: string
-  referredId: string
-  orderId: string
+  referrer_id: string
+  referred_id: string
+  order_id: string
   amount: number
   stage: 'onSale' | 'onThirdPayment' | 'onContemplation'
   status: CommissionStatus
-  paidAt?: string
-  createdAt: string
+  paid_at?: string
+  created_at: string
 }
 
 // ── Stats & Dashboard ───────────────────────
