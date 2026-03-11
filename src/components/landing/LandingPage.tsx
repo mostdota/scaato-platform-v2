@@ -480,6 +480,7 @@ export default function LandingPage() {
                 </div>
                 <div className="absolute bottom-4 right-4 text-right">
                   <p className="text-xs" style={{ color: 'var(--gray)' }}>A partir de</p>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '14px', color: 'var(--gray)', letterSpacing: '0.05em' }}>R$ 12.800 · Parcela</p>
                   <p className="font-semibold" style={{ fontFamily: 'var(--font-display)', fontSize: '22px', color: 'var(--white)' }}>R$ 467<span className="text-sm font-normal">/mês</span></p>
                 </div>
               </div>
