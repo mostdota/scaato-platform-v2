@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { Sidebar } from '@/components/layout/Sidebar'
+import Sidebar from '@/components/layout/Sidebar'
 import type { Profile } from '@/types'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
