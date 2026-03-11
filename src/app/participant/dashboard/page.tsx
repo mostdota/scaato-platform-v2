@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { TopBar } from '@/components/layout/Sidebar'
 import ParticipantDashboardClient from '@/components/dashboard/ParticipantDashboardClient'
 import type { Profile } from '@/types'
 
@@ -38,7 +37,6 @@ export default async function ParticipantDashboardPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      <TopBar profile={profile} title="Meu Painel" />
       <div className="flex-1 p-6">
         <ParticipantDashboardClient
           profile={profile}

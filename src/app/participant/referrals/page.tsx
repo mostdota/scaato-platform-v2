@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { TopBar } from '@/components/layout/Sidebar'
 import ReferralsClient from '@/components/dashboard/ReferralsClient'
 import type { Profile } from '@/types'
 
@@ -19,7 +18,6 @@ export default async function ReferralsPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      <TopBar profile={profileRes.data as Profile} title="Indicações" />
       <div className="flex-1 p-6">
         <ReferralsClient
           profile={profileRes.data as Profile}
