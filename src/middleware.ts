@@ -1,9 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC = ['/', '/login', '/cadastro', '/simulador', '/sobre', '/como-funciona', '/suporte', '/legal']
-const ADMIN_ONLY = ['/admin']
-const CUSTOMER_ONLY = ['/participant']
+const PUBLIC = ['/', '/login', '/cadastro', '/simulador', '/sobre', '/como-funciona', '/suporte', '/legal', '/manifest.json', '/icon']
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -28,7 +26,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Rota pública
+  // Rotas públicas
   const isPublic = PUBLIC.some(p => pathname === p || pathname.startsWith(p + '/'))
   if (isPublic) return response
 
@@ -40,12 +38,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Verifica role para admin
-  if (ADMIN_ONLY.some(p => pathname.startsWith(p))) {
-    const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', user.id).single()
+  // Admin only
+  if (pathname.startsWith('/admin')) {
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (profile?.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/participant/dashboard', request.url))
+      return NextResponse.redirect(new URL('/app/dashboard', request.url))
     }
   }
 
