@@ -1,248 +1,232 @@
 'use client'
-
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, ArrowLeft, ArrowRight, Loader2, Eye, EyeOff, Check, User, MapPin, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { maskCPF, maskPhone, maskCEP } from '@/utils'
 
-const schema = z.object({
-  name: z.string().min(3, 'Nome muito curto'),
-  email: z.string().email('E-mail inválido'),
-  cpf: z.string().min(14, 'CPF inválido'),
-  rg: z.string().min(5, 'RG inválido'),
-  phone: z.string().min(14, 'Telefone inválido'),
-  address: z.string().min(5, 'Endereço inválido'),
-  city: z.string().min(2, 'Cidade inválida'),
-  state: z.string().length(2, 'UF inválida'),
-  zipCode: z.string().min(9, 'CEP inválido'),
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
-  confirmPassword: z.string(),
-  referralCode: z.string().optional(),
-  terms: z.boolean().refine(v => v === true, 'Aceite os termos'),
-}).refine(d => d.password === d.confirmPassword, { message: 'Senhas não coincidem', path: ['confirmPassword'] })
+const C = {
+  bg: '#050505', card: '#111', border: 'rgba(255,255,255,0.1)',
+  blue: '#0A84FF', green: '#34C759', red: '#FF453A',
+  text: '#F5F7FA', gray: '#8A8A8E', font: "'Bebas Neue', sans-serif"
+}
 
-type FormData = z.infer<typeof schema>
-
-const STEPS = [
-  { id: 'personal', label: 'Dados Pessoais', icon: User },
-  { id: 'address',  label: 'Endereço',       icon: MapPin },
-  { id: 'security', label: 'Segurança',       icon: Lock },
-]
-
-function InputField({ label, error, ...props }: any) {
-  return (
-    <div>
-      <label className="label">{label}</label>
-      <input {...props} className="input" />
-      {error && <p className="text-xs mt-1" style={{ color: '#FF453A' }}>{error}</p>}
-    </div>
-  )
+function inp(extra = {}): React.CSSProperties {
+  return {
+    width: '100%', background: '#1C1C1E', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 12, padding: '14px 16px', color: '#F5F7FA', fontSize: 16,
+    outline: 'none', boxSizing: 'border-box', WebkitAppearance: 'none', ...extra
+  }
 }
 
 function CadastroForm() {
-  const [step, setStep] = useState(0)
-  const [showPass, setShowPass] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
-  const [serverError, setServerError] = useState('')
   const router = useRouter()
   const params = useSearchParams()
-  const supabase = createClient()
-
-  const { register, handleSubmit, trigger, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues: { referralCode: params.get('ref') || '' },
+  const [step, setStep] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    name: '', email: '', cpf: '', phone: '',
+    address: '', city: '', state: 'SP', zipCode: '',
+    password: '', confirmPassword: '',
+    referralCode: params.get('ref') || ''
   })
 
-  async function nextStep() {
-    const fields: (keyof FormData)[][] = [
-      ['name', 'email', 'cpf', 'rg', 'phone'],
-      ['address', 'city', 'state', 'zipCode'],
-      ['password', 'confirmPassword', 'terms'],
-    ]
-    const valid = await trigger(fields[step])
-    if (valid) setStep(s => s + 1)
+  function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
+
+  function maskCPF(v: string) {
+    return v.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4').substring(0, 14)
+  }
+  function maskPhone(v: string) {
+    return v.replace(/\D/g, '').replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3').substring(0, 15)
+  }
+  function maskCEP(v: string) {
+    return v.replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2').substring(0, 9)
   }
 
-  async function onSubmit(data: FormData) {
-    setServerError('')
-    const { data: authData, error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          name: data.name, cpf: data.cpf.replace(/\D/g, ''), rg: data.rg,
-          phone: data.phone.replace(/\D/g, ''), address: data.address,
-          city: data.city, state: data.state.toUpperCase(),
-          zip_code: data.zipCode.replace(/\D/g, ''), referral_code: data.referralCode || '',
+  async function handleSubmit() {
+    if (form.password !== form.confirmPassword) { setError('Senhas não coincidem'); return }
+    if (form.password.length < 8) { setError('Senha deve ter ao menos 8 caracteres'); return }
+    setLoading(true); setError('')
+    try {
+      const supabase = createClient()
+      const { error: authErr } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            name: form.name,
+            cpf: form.cpf.replace(/\D/g, ''),
+            phone: form.phone,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            zip_code: form.zipCode.replace(/\D/g, ''),
+            referral_code: form.referralCode,
+          }
         }
-      }
-    })
-    if (error) { setServerError(error.message); return }
-    router.push('/participant/dashboard')
+      })
+      if (authErr) throw authErr
+      router.push('/app/onboarding')
+    } catch (e: any) {
+      setError(e.message?.includes('already registered') ? 'E-mail já cadastrado' : (e.message || 'Erro ao criar conta'))
+    } finally { setLoading(false) }
   }
 
-  const C = 'var(--blue, #0A84FF)'
+  const steps = [
+    {
+      title: 'Dados Pessoais', fields: (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>NOME COMPLETO *</label>
+            <input style={inp()} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Seu nome completo" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>CPF *</label>
+            <input style={inp()} value={form.cpf} onChange={e => set('cpf', maskCPF(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>TELEFONE *</label>
+            <input style={inp()} value={form.phone} onChange={e => set('phone', maskPhone(e.target.value))} placeholder="(16) 99999-9999" inputMode="tel" />
+          </div>
+        </>
+      ),
+      valid: () => form.name.length >= 3 && form.cpf.length >= 14 && form.phone.length >= 14
+    },
+    {
+      title: 'Endereço', fields: (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>CEP *</label>
+            <input style={inp()} value={form.zipCode} onChange={e => set('zipCode', maskCEP(e.target.value))} placeholder="00000-000" inputMode="numeric" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>ENDEREÇO *</label>
+            <input style={inp()} value={form.address} onChange={e => set('address', e.target.value)} placeholder="Rua, número, bairro" />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px', gap: 10 }}>
+            <div>
+              <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>CIDADE *</label>
+              <input style={inp()} value={form.city} onChange={e => set('city', e.target.value)} placeholder="Sua cidade" />
+            </div>
+            <div>
+              <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>UF</label>
+              <select style={{ ...inp(), padding: '14px 8px' }} value={form.state} onChange={e => set('state', e.target.value)}>
+                {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => <option key={uf} value={uf}>{uf}</option>)}
+              </select>
+            </div>
+          </div>
+        </>
+      ),
+      valid: () => form.zipCode.length >= 9 && form.address.length >= 5 && form.city.length >= 2
+    },
+    {
+      title: 'Acesso', fields: (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>E-MAIL *</label>
+            <input style={inp()} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="seu@email.com" inputMode="email" autoCapitalize="none" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>SENHA * (mín. 8 caracteres)</label>
+            <input style={inp()} type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="Sua senha" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>CONFIRMAR SENHA *</label>
+            <input style={inp()} type="password" value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)} placeholder="Repita a senha" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ color: C.gray, fontSize: 11, letterSpacing: 1, display: 'block', marginBottom: 6 }}>CÓDIGO DE INDICAÇÃO (opcional)</label>
+            <input style={inp()} value={form.referralCode} onChange={e => set('referralCode', e.target.value.toUpperCase())} placeholder="XXXXXXXX" autoCapitalize="characters" />
+          </div>
+        </>
+      ),
+      valid: () => form.email.includes('@') && form.password.length >= 8 && form.password === form.confirmPassword
+    }
+  ]
+
+  const currentStep = steps[step]
+  const progress = ((step + 1) / steps.length) * 100
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: '#050505' }}>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(10,132,255,0.06) 0%, transparent 70%)' }} />
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="flex items-center gap-2.5 mb-8 justify-center">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#0A84FF' }}>
-            <Zap className="w-4 h-4 text-white" />
+    <div style={{ background: C.bg, minHeight: '100vh', maxWidth: 480, margin: '0 auto', padding: '0 0 40px' }}>
+      {/* Header */}
+      <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#fff', fontWeight: 900, fontSize: 14 }}>S</span>
           </div>
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '18px', letterSpacing: '0.1em', color: '#F5F7FA' }}>SCAATO</span>
-        </div>
-
-        <div className="rounded-2xl p-8" style={{ background: 'rgba(28,28,30,0.7)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)' }}>
-          {/* Step indicator */}
-          <div className="flex items-center gap-2 mb-8">
-            {STEPS.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-2 flex-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-                    style={{ background: i < step ? '#34C759' : i === step ? '#0A84FF' : 'rgba(255,255,255,0.06)', color: i <= step ? '#fff' : '#8A8A8E' }}>
-                    {i < step ? <Check className="w-3.5 h-3.5" /> : String(i + 1)}
-                  </div>
-                  <span className="text-xs font-medium hidden sm:block" style={{ color: i === step ? '#F5F7FA' : '#8A8A8E' }}>{s.label}</span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className="flex-1 h-px" style={{ background: i < step ? '#34C759' : 'rgba(255,255,255,0.08)' }} />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <h1 className="mb-1" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '26px', letterSpacing: '0.05em', color: '#F5F7FA' }}>
-            {STEPS[step].label}
-          </h1>
-          <p className="text-sm mb-6" style={{ color: '#8A8A8E' }}>
-            {step === 0 ? 'Seus dados de identificação' : step === 1 ? 'Para entrega da scooter' : 'Crie sua senha segura'}
-          </p>
-
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <AnimatePresence mode="wait">
-              {step === 0 && (
-                <motion.div key="s0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                  <InputField label="Nome Completo" placeholder="Seu nome completo" error={errors.name?.message} {...register('name')} />
-                  <InputField label="E-mail" type="email" placeholder="seu@email.com" error={errors.email?.message} {...register('email')} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <InputField label="CPF" placeholder="000.000.000-00" error={errors.cpf?.message}
-                      {...register('cpf', { onChange: e => setValue('cpf', maskCPF(e.target.value)) })} />
-                    <InputField label="RG" placeholder="0000000" error={errors.rg?.message} {...register('rg')} />
-                  </div>
-                  <InputField label="Telefone / WhatsApp" placeholder="(11) 99999-9999" error={errors.phone?.message}
-                    {...register('phone', { onChange: e => setValue('phone', maskPhone(e.target.value)) })} />
-                </motion.div>
-              )}
-              {step === 1 && (
-                <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                  <InputField label="Endereço Completo" placeholder="Rua, número, complemento" error={errors.address?.message} {...register('address')} />
-                  <div className="grid grid-cols-2 gap-4">
-                    <InputField label="Cidade" placeholder="São Paulo" error={errors.city?.message} {...register('city')} />
-                    <InputField label="UF" placeholder="SP" maxLength={2} error={errors.state?.message}
-                      {...register('state', { onChange: e => setValue('state', e.target.value.toUpperCase()) })} />
-                  </div>
-                  <InputField label="CEP" placeholder="00000-000" error={errors.zipCode?.message}
-                    {...register('zipCode', { onChange: e => setValue('zipCode', maskCEP(e.target.value)) })} />
-                  <InputField label="Código de Indicação (opcional)" placeholder="CODIGO123" error={errors.referralCode?.message} {...register('referralCode')} />
-                </motion.div>
-              )}
-              {step === 2 && (
-                <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                  <div>
-                    <label className="label">Senha</label>
-                    <div className="relative">
-                      <input {...register('password')} type={showPass ? 'text' : 'password'} className="input pr-12" placeholder="Mínimo 8 caracteres" />
-                      <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: '#8A8A8E' }}>
-                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.password && <p className="text-xs mt-1" style={{ color: '#FF453A' }}>{errors.password.message}</p>}
-                  </div>
-                  <div>
-                    <label className="label">Confirmar Senha</label>
-                    <div className="relative">
-                      <input {...register('confirmPassword')} type={showConfirm ? 'text' : 'password'} className="input pr-12" placeholder="Repita a senha" />
-                      <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: '#8A8A8E' }}>
-                        {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && <p className="text-xs mt-1" style={{ color: '#FF453A' }}>{errors.confirmPassword.message}</p>}
-                  </div>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <div className="relative mt-0.5 flex-shrink-0">
-                      <input type="checkbox" {...register('terms')} className="sr-only" />
-                      <div className="w-4 h-4 rounded flex items-center justify-center transition-all"
-                        style={{ background: watch('terms') ? '#0A84FF' : 'transparent', border: `1px solid ${watch('terms') ? '#0A84FF' : 'rgba(255,255,255,0.2)'}` }}>
-                        {watch('terms') && <Check className="w-2.5 h-2.5 text-white" />}
-                      </div>
-                    </div>
-                    <span className="text-xs leading-relaxed" style={{ color: '#8A8A8E' }}>
-                      Aceito os <span style={{ color: '#0A84FF' }}>Termos de Uso</span> e a <span style={{ color: '#0A84FF' }}>Política de Privacidade</span> da SCAATO
-                    </span>
-                  </label>
-                  {errors.terms && <p className="text-xs" style={{ color: '#FF453A' }}>{errors.terms.message}</p>}
-                  {serverError && (
-                    <div className="rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(255,69,58,0.08)', border: '1px solid rgba(255,69,58,0.2)', color: '#FF453A' }}>
-                      {serverError}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="flex gap-3 mt-6">
-              {step > 0 && (
-                <button type="button" onClick={() => setStep(s => s - 1)}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all"
-                  style={{ background: 'rgba(255,255,255,0.06)', color: '#F5F7FA', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <ArrowLeft className="w-4 h-4" /> Voltar
-                </button>
-              )}
-              {step < STEPS.length - 1 ? (
-                <button type="button" onClick={nextStep}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all"
-                  style={{ background: '#0A84FF', color: '#fff' }}>
-                  Continuar <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <button type="submit" disabled={isSubmitting}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all"
-                  style={{ background: isSubmitting ? 'rgba(10,132,255,0.5)' : '#0A84FF', color: '#fff' }}>
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Criar Conta <ArrowRight className="w-4 h-4" /></>}
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-
-        <div className="mt-6 text-center text-sm" style={{ color: '#8A8A8E' }}>
-          Já tem conta?{' '}
-          <Link href="/login" style={{ color: '#0A84FF' }} className="font-semibold">Entrar</Link>
-        </div>
-        <Link href="/" className="flex items-center gap-2 justify-center mt-4 text-sm transition-colors" style={{ color: '#8A8A8E' }}>
-          <ArrowLeft className="w-4 h-4" /> Voltar ao início
+          <span style={{ fontFamily: C.font, fontSize: 20, letterSpacing: 2, color: C.text }}>SCAATO</span>
         </Link>
-      </motion.div>
+        <span style={{ color: C.gray, fontSize: 12 }}>{step + 1}/{steps.length}</span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ padding: '16px 20px 0' }}>
+        <div style={{ height: 3, background: '#1C1C1E', borderRadius: 2 }}>
+          <div style={{ height: '100%', width: `${progress}%`, background: C.blue, borderRadius: 2, transition: 'width 0.3s' }} />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '24px 20px' }}>
+        <h1 style={{ fontFamily: C.font, fontSize: 32, color: C.text, letterSpacing: 1, marginBottom: 6 }}>
+          {currentStep.title}
+        </h1>
+        <p style={{ color: C.gray, fontSize: 13, marginBottom: 24 }}>
+          {step === 0 && 'Precisamos dos seus dados para o contrato'}
+          {step === 1 && 'Para calcular o quiosque mais próximo'}
+          {step === 2 && 'Seu login no app SCAATO'}
+        </p>
+
+        {currentStep.fields}
+
+        {error && (
+          <div style={{ background: 'rgba(255,69,58,0.1)', border: '1px solid rgba(255,69,58,0.3)', borderRadius: 12, padding: '12px 16px', marginTop: 12 }}>
+            <p style={{ color: C.red, fontSize: 13, margin: 0 }}>⚠️ {error}</p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+          {step > 0 && (
+            <button
+              onClick={() => { setStep(s => s - 1); setError('') }}
+              style={{ flex: 1, background: '#1C1C1E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, padding: 16, color: C.text, fontSize: 15, cursor: 'pointer' }}
+            >
+              ← Voltar
+            </button>
+          )}
+          {step < steps.length - 1 ? (
+            <button
+              onClick={() => {
+                if (!currentStep.valid()) { setError('Preencha todos os campos obrigatórios'); return }
+                setError(''); setStep(s => s + 1)
+              }}
+              style={{ flex: 2, background: C.blue, border: 'none', borderRadius: 14, padding: 16, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Próximo →
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !currentStep.valid()}
+              style={{ flex: 2, background: loading ? 'rgba(52,199,89,0.4)' : C.green, border: 'none', borderRadius: 14, padding: 16, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {loading ? '⏳ Criando conta...' : '✓ Criar Conta'}
+            </button>
+          )}
+        </div>
+
+        <p style={{ textAlign: 'center', marginTop: 20, color: C.gray, fontSize: 13 }}>
+          Já tem conta?{' '}
+          <Link href="/login" style={{ color: C.blue, textDecoration: 'none', fontWeight: 600 }}>Entrar</Link>
+        </p>
+      </div>
+      <style>{`* { -webkit-tap-highlight-color: transparent; } input, select { color-scheme: dark; }`}</style>
     </div>
   )
 }
 
 export default function CadastroPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen" style={{ background: '#050505' }} />}>
-      <CadastroForm />
-    </Suspense>
-  )
+  return <Suspense fallback={<div style={{ background: '#050505', minHeight: '100vh' }} />}><CadastroForm /></Suspense>
 }
