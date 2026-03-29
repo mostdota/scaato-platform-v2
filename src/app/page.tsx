@@ -1,2 +1,4 @@
-import LandingPage from '@/components/landing/LandingPage'
-export default function Home() { return <LandingPage /> }
+import { redirect } from 'next/navigation'
+export default function Home() {
+  redirect('/app-v3')
+}
