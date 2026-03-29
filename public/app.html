@@ -1434,8 +1434,7 @@ const fdata = [
 ];
 function doFacial() {
   const input = document.getElementById('facial-input');
-  // Tenta abrir câmera frontal
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  if (navigator.mediaDevices && input) {
     input.click();
     input.onchange = function() {
       if (input.files && input.files[0]) {
@@ -1664,80 +1663,42 @@ function firework() {
 </script>
 
 <script>
-/* ══════════════════════════════
-   SUPABASE REAL — backend silencioso
-   Layout 100% intacto
-══════════════════════════════ */
-(function() {
-  var sc = document.createElement('script');
-  sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-  sc.onload = function() {
-    window._sb = window.supabase.createClient('https://eneulkdykuttunjnorjh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuZXVsa2R5a3V0dHVuam5vcmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkwMTUsImV4cCI6MjA4ODc0NTAxNX0.I-VF3i2I-LYH7jXqF96hQFpPFjl6tH0KcgD5p_OQHB4');
-    // Verifica sessão ativa
-    window._sb.auth.getSession().then(function(r) {
-      if (r.data && r.data.session) {
-        window._sbUser = r.data.session.user;
-        // Busca pedido existente
-        window._sb.from('orders')
-          .select('*').eq('profile_id', window._sbUser.id)
-          .limit(1).maybeSingle().then(function(o) {
-            if (o.data) {
-              model = o.data.scooter_model === 'SCAATO X-Series' ? 'x' : 'urban';
-              setTimeout(function() { go('s-tracking'); }, 200);
-            }
-          });
+/* Supabase backend — invisível, não altera layout nem fluxo */
+(function(){
+  var s=document.createElement('script');
+  s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  s.onload=function(){
+    window._sb=window.supabase.createClient('https://eneulkdykuttunjnorjh.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuZXVsa2R5a3V0dHVuam5vcmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkwMTUsImV4cCI6MjA4ODc0NTAxNX0.I-VF3i2I-LYH7jXqF96hQFpPFjl6tH0KcgD5p_OQHB4');
+    window._sb.auth.getSession().then(function(r){
+      if(r.data&&r.data.session){
+        window._sbUser=r.data.session.user;
+        window._sb.from('orders').select('*').eq('profile_id',window._sbUser.id).limit(1).maybeSingle().then(function(o){
+          if(o.data){ model=o.data.scooter_model==='SCAATO X-Series'?'x':'urban'; setTimeout(function(){go('s-tracking');},200); }
+        });
       }
     });
   };
-  document.head.appendChild(sc);
+  document.head.appendChild(s);
 })();
 
-/* salva pedido no Supabase ao assinar */
-async function _sbSave() {
-  if (!window._sb) return;
-  try {
-    var modelName = model === 'urban' ? 'Urban Plus' : 'SCAATO X-Series';
-    // Cria usuário anônimo se não há sessão
-    if (!window._sbUser) {
-      var r = await window._sb.auth.signInAnonymously();
-      if (r.data && r.data.user) window._sbUser = r.data.user;
-    }
-    if (!window._sbUser) return;
-    // Atualiza perfil
-    var nomeEl = document.getElementById('inp-nome');
-    await window._sb.from('profiles').upsert({
-      id: window._sbUser.id,
-      email: window._sbUser.email || '',
-      name: nomeEl ? (nomeEl.value || 'Usuário SCAATO') : 'Usuário SCAATO',
-      kyc_status: 'APPROVED', status: 'ACTIVE',
-      updated_at: new Date().toISOString()
-    });
-    // Cria pedido
-    var res = await window._sb.from('orders').insert({
-      profile_id: window._sbUser.id,
-      scooter_model: modelName,
-      status: 'CONTRACT_SIGNED',
-      monthly_value: 746, total_months: 24, activation_fee: 470,
-      contract_signed_at: new Date().toISOString(),
-      fund_approved_at: new Date().toISOString()
-    }).select().maybeSingle();
-    if (res.data) {
-      await window._sb.from('notifications').insert({
-        profile_id: window._sbUser.id,
-        title: '🎉 Pedido aprovado!',
-        message: 'Sua ' + modelName + ' foi aprovada! Vá ao quiosque SCAATO.',
-        type: 'SUCCESS'
-      });
-    }
-  } catch(e) { console.warn('Supabase:', e); }
+async function _sbSave(){
+  if(!window._sb) return;
+  try{
+    var nm=model==='urban'?'Urban Plus':'SCAATO X-Series';
+    if(!window._sbUser){var r=await window._sb.auth.signInAnonymously();if(r.data&&r.data.user)window._sbUser=r.data.user;}
+    if(!window._sbUser) return;
+    var nomeEl=document.getElementById('inp-nome');
+    await window._sb.from('profiles').upsert({id:window._sbUser.id,email:window._sbUser.email||'',name:nomeEl?(nomeEl.value||'Usuário'):'Usuário',kyc_status:'APPROVED',status:'ACTIVE',updated_at:new Date().toISOString()});
+    var res=await window._sb.from('orders').insert({profile_id:window._sbUser.id,scooter_model:nm,status:'CONTRACT_SIGNED',monthly_value:746,total_months:24,activation_fee:470,contract_signed_at:new Date().toISOString(),fund_approved_at:new Date().toISOString()}).select().maybeSingle();
+    if(res.data)await window._sb.from('notifications').insert({profile_id:window._sbUser.id,title:'🎉 Pedido aprovado!',message:'Sua '+nm+' foi aprovada!',type:'SUCCESS'});
+  }catch(e){console.warn('sb:',e);}
 }
 
-/* Override finalSign para salvar no banco */
-var _origFinalSign = window.finalSign;
-window.finalSign = function() {
-  _sbSave();
-  if (_origFinalSign) _origFinalSign.call(this);
-};
+/* hook no finalSign original sem alterar nada */
+(function(){
+  var orig=window.finalSign;
+  window.finalSign=function(){_sbSave();if(orig)orig.call(this);};
+})();
 </script>
 
 </body>
