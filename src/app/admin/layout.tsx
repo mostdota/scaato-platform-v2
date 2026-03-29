@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-  if (!profile || profile.role !== 'ADMIN') redirect('/participant/dashboard')
+  if (!profile || !['ADMIN','SUPER_ADMIN'].includes(profile.role)) redirect('/app-v3')
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#050505' }}>

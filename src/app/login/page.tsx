@@ -20,7 +20,7 @@ function inp(): React.CSSProperties {
 function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const redirect = params.get('redirect') || '/app/dashboard'
+  const redirect = params.get('redirect') || ''
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,7 +33,10 @@ function LoginForm() {
       const supabase = createClient()
       const { error: authErr } = await supabase.auth.signInWithPassword({ email, password })
       if (authErr) throw authErr
-      router.push(redirect)
+      // Verifica role do usuário para redirecionar corretamente
+      const { data: profile } = await supabase.from('profiles').select('role').eq('email', email).single()
+      const dest = redirect || (profile?.role === 'SUPER_ADMIN' || profile?.role === 'ADMIN' ? '/admin/dashboard' : '/app-v3')
+      router.push(dest)
       router.refresh()
     } catch {
       setError('E-mail ou senha incorretos')

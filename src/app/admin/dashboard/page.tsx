@@ -3,37 +3,34 @@ import { createClient } from '@/lib/supabase/server'
 import AdminDashboardClient from '@/components/admin/AdminDashboardClient'
 import type { Profile } from '@/types'
 
-export const metadata = { title: 'Admin — Dashboard' }
+export const metadata = { title: 'Admin — Dashboard SCAATO' }
 
 export default async function AdminDashboardPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [profileRes, customersRes, ordersRes, paymentsRes, contractsRes] = await Promise.all([
+  const [profileRes, customersRes, ordersRes, paymentsRes] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
-    supabase.from('profiles').select('id').eq('role', 'CUSTOMER'),
-    supabase.from('orders').select('id, status, total_amount, created_at, profile_id, profiles(name, email)').order('created_at', { ascending: false }).limit(10),
-    supabase.from('payments').select('id, status, value, due_date, paid_at, profile_id, method, pix_qr_code_payload, bank_slip_url, invoice_url').order('created_at', { ascending: false }).limit(10),
-    supabase.from('contracts').select('id, status').limit(100),
+    supabase.from('profiles').select('id').neq('role', 'ADMIN').neq('role', 'SUPER_ADMIN'),
+    supabase.from('orders').select('id, status, monthly_value, created_at, profile_id, scooter_model').order('created_at', { ascending: false }).limit(20),
+    supabase.from('payments').select('id, status, due_date, paid_at').order('created_at', { ascending: false }).limit(50),
   ])
 
   const payments = paymentsRes.data ?? []
   const orders   = ordersRes.data   ?? []
   const profile  = profileRes.data  as Profile
 
-  if (!profile || profile.role !== 'ADMIN') redirect('/participant/dashboard')
+  if (!profile || !['ADMIN','SUPER_ADMIN'].includes(profile.role)) redirect('/app-v3')
 
   const stats = {
     totalUsers:      customersRes.data?.length ?? 0,
     totalOrders:     orders.length,
-    totalRevenue:    payments.filter(p => p.status === 'CONFIRMED').reduce((s, p) => s + Number(p.value), 0),
+    totalRevenue:    payments.filter(p => p.status === 'CONFIRMED').length * 746,
     pendingPayments: payments.filter(p => p.status === 'PENDING').length,
     overduePayments: payments.filter(p => p.status === 'OVERDUE').length,
-    totalContracts:  contractsRes.data?.length ?? 0,
+    activeOrders:    orders.filter(o => o.status === 'CONTRACT_SIGNED' || o.status === 'ACTIVE').length,
   }
 
-  const recentOrders = orders.map(o => ({ ...o, profile: (o as any).profiles as { name: string; email: string } | undefined }))
-
-  return <AdminDashboardClient profile={profile} stats={stats} recentOrders={recentOrders} recentPayments={payments as any} />
+  return <AdminDashboardClient profile={profile} stats={stats} recentOrders={orders as any} recentPayments={payments as any} />
 }
