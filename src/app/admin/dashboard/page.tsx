@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
     totalRevenue:    payments.filter(p => p.status === 'CONFIRMED').length * 746,
     pendingPayments: payments.filter(p => p.status === 'PENDING').length,
     overduePayments: payments.filter(p => p.status === 'OVERDUE').length,
-    activeOrders:    orders.filter(o => o.status === 'CONTRACT_SIGNED' || o.status === 'ACTIVE').length,
+    totalContracts:  orders.filter(o => o.status === 'CONTRACT_SIGNED' || o.status === 'ACTIVE').length,
   }
 
   return <AdminDashboardClient profile={profile} stats={stats} recentOrders={orders as any} recentPayments={payments as any} />
